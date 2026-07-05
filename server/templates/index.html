@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="utf-8"><title>WebTask Arena</title>
+<style>
+  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 48px auto; color: #1c1e21; }
+  li { margin: 8px 0; }
+  code { background: #eef0f3; padding: 2px 5px; border-radius: 4px; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>WebTask Arena</h1>
+<p>Deterministic, resettable web environments for evaluating GUI agents.</p>
+<ul>
+  {% for task_id, task_title in tasks %}
+  <li><a href="/task/{{ task_id }}">{{ task_title }}</a> — <code>{{ task_id }}</code></li>
+  {% endfor %}
+</ul>
+<p>Reset an episode: <code>POST /api/&lt;task_id&gt;/reset {"seed": 42}</code> ·
+Check the outcome: <code>GET /api/&lt;task_id&gt;/verify</code></p>
+</body>
+</html>

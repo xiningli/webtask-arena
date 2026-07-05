@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+
+{% block style %}
+  .steps { display: flex; gap: 8px; padding: 14px 20px 0; font-size: 13px; }
+  .steps span { padding: 4px 10px; border-radius: 99px; background: #eef0f3; color: #7a808a; }
+  .steps span.now { background: #2456d6; color: #fff; }
+  .body { padding: 8px 20px 20px; }
+  .product { font-size: 14px; color: #7a808a; padding: 10px 20px 0; }
+  .actions { margin-top: 18px; text-align: right; }
+  .review-line { padding: 6px 0; font-size: 14px; border-bottom: 1px solid #f0f2f5; }
+  .success { padding: 40px 20px; text-align: center; font-size: 17px; font-weight: 600; color: #16a34a; }
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-head">Checkout</div>
+  <div class="product">Cart: {{ product }} × 1</div>
+  <div class="steps">
+    <span class="now" data-step-pill="1">1 · Contact</span>
+    <span data-step-pill="2">2 · Shipping</span>
+    <span data-step-pill="3">3 · Review</span>
+  </div>
+
+  <div class="body" data-step="1">
+    <label>Full name</label>
+    <input type="text" id="name"><div class="error" data-err="name"></div>
+    <label>Email</label>
+    <input type="email" id="email"><div class="error" data-err="email"></div>
+    <div class="actions"><button class="primary" id="next1">Continue</button></div>
+  </div>
+
+  <div class="body hidden" data-step="2">
+    <label>Street address</label>
+    <input type="text" id="street"><div class="error" data-err="street"></div>
+    <label>City</label>
+    <input type="text" id="city"><div class="error" data-err="city"></div>
+    <label>ZIP code</label>
+    <input type="text" id="zip"><div class="error" data-err="zip"></div>
+    <div class="actions"><button class="primary" id="next2">Continue</button></div>
+  </div>
+
+  <div class="body hidden" data-step="3">
+    <div id="review"></div>
+    <div class="error" data-err="_"></div>
+    <div class="actions"><button class="primary" id="submit">Place order</button></div>
+  </div>
+
+  <div class="success hidden" data-step="done">Order placed. Thank you!</div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  const fields = ['name', 'email', 'street', 'city', 'zip'];
+  const val = id => document.getElementById(id).value;
+
+  function show(step) {
+    document.querySelectorAll('[data-step]').forEach(el =>
+      el.classList.toggle('hidden', el.dataset.step !== String(step)));
+    document.querySelectorAll('[data-step-pill]').forEach(el =>
+      el.classList.toggle('now', el.dataset.stepPill === String(step)));
+  }
+
+  function showErrors(errors) {
+    document.querySelectorAll('[data-err]').forEach(el => {
+      el.textContent = (errors || {})[el.dataset.err] || '';
+    });
+  }
+
+  document.getElementById('next1').addEventListener('click', async () => {
+    const { status, body } = await act({ op: 'contact', name: val('name'), email: val('email') });
+    showErrors(body.errors);
+    if (status === 200) show(2);
+  });
+
+  document.getElementById('next2').addEventListener('click', async () => {
+    const { status, body } = await act({ op: 'shipping', street: val('street'), city: val('city'), zip: val('zip') });
+    showErrors(body.errors);
+    if (status === 200) {
+      document.getElementById('review').innerHTML = fields
+        .map(f => `<div class="review-line"><b>${f}:</b> ${val(f)}</div>`)
+        .join('');
+      show(3);
+    }
+  });
+
+  document.getElementById('submit').addEventListener('click', async () => {
+    const { status, body } = await act({ op: 'submit' });
+    showErrors(body.errors);
+    if (status === 200) show('done');
+  });
+</script>
+{% endblock %}

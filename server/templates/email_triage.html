@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+
+{% block style %}
+  table { width: 100%; border-collapse: collapse; }
+  tr.email-row { border-top: 1px solid #eef0f3; }
+  td { padding: 10px 12px; font-size: 14px; vertical-align: middle; }
+  .sender { font-weight: 600; white-space: nowrap; }
+  .preview { color: #7a808a; }
+  .star-btn { border: none; background: none; font-size: 18px; color: #c4c9d1; }
+  .star-btn.on { color: #f59e0b; }
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-head">Inbox</div>
+  <table>
+    <tbody>
+      {% for e in emails %}
+      <tr class="email-row" data-id="{{ e.id }}">
+        <td><button class="star-btn {{ 'on' if e.starred else '' }}" aria-label="Star">★</button></td>
+        <td class="sender">{{ e.sender }}</td>
+        <td>{{ e.subject }} <span class="preview">— {{ e.preview }}</span></td>
+        <td><button class="archive-btn">Archive</button></td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  document.querySelectorAll('.email-row').forEach(row => {
+    const id = Number(row.dataset.id);
+    row.querySelector('.archive-btn').addEventListener('click', async () => {
+      const { status } = await act({ op: 'archive', id });
+      if (status === 200) row.remove();
+    });
+    row.querySelector('.star-btn').addEventListener('click', async (ev) => {
+      const { status, body } = await act({ op: 'star', id });
+      if (status === 200) ev.target.classList.toggle('on', body.starred);
+    });
+  });
+</script>
+{% endblock %}

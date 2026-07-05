@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block style %}
+  .layout { display: flex; min-height: 380px; }
+  nav { width: 180px; border-right: 1px solid #e8eaee; padding: 12px 0; }
+  nav button { display: block; width: 100%; text-align: left; border: none;
+               background: none; padding: 9px 20px; font-size: 14px; border-radius: 0; }
+  nav button.active { background: #eef2fd; color: #2456d6; font-weight: 600; }
+  section { flex: 1; padding: 18px 24px; }
+  .row { display: flex; justify-content: space-between; align-items: center;
+         padding: 12px 0; border-bottom: 1px solid #f0f2f5; font-size: 14px; }
+  .row .name { font-weight: 600; }
+  .row .desc { color: #7a808a; font-size: 12px; margin-top: 2px; }
+  .row select { width: 220px; }
+  .foot { padding: 14px 24px; border-top: 1px solid #e8eaee; text-align: right; }
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-head">Settings</div>
+  <div class="layout">
+    <nav id="nav">
+      {% for section in sections %}
+      <button data-section="{{ section }}" {% if loop.first %}class="active"{% endif %}>{{ section }}</button>
+      {% endfor %}
+    </nav>
+
+    <section data-panel="General">
+      <div class="row">
+        <div><div class="name">Language</div><div class="desc">Display language for the interface</div></div>
+        <select data-field="language">
+          {% for lang in languages %}<option {{ 'selected' if lang == saved.language else '' }}>{{ lang }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="row">
+        <div><div class="name">Timezone</div><div class="desc">Used for dates and reminders</div></div>
+        <select data-field="timezone">
+          {% for tz in timezones %}<option {{ 'selected' if tz == saved.timezone else '' }}>{{ tz }}</option>{% endfor %}
+        </select>
+      </div>
+    </section>
+
+    <section data-panel="Appearance" class="hidden">
+      <div class="row">
+        <div><div class="name">Dark Mode</div><div class="desc">Use a dark color theme</div></div>
+        <input type="checkbox" data-field="dark_mode" {{ 'checked' if saved.dark_mode else '' }}>
+      </div>
+      <div class="row">
+        <div><div class="name">Compact Layout</div><div class="desc">Reduce spacing between elements</div></div>
+        <input type="checkbox" data-field="compact_layout" {{ 'checked' if saved.compact_layout else '' }}>
+      </div>
+    </section>
+
+    <section data-panel="Notifications" class="hidden">
+      <div class="row">
+        <div><div class="name">Email Notifications</div><div class="desc">Weekly digest and mentions</div></div>
+        <input type="checkbox" data-field="email_notifications" {{ 'checked' if saved.email_notifications else '' }}>
+      </div>
+      <div class="row">
+        <div><div class="name">Push Notifications</div><div class="desc">Real-time alerts on this device</div></div>
+        <input type="checkbox" data-field="push_notifications" {{ 'checked' if saved.push_notifications else '' }}>
+      </div>
+    </section>
+
+    <section data-panel="Advanced" class="hidden">
+      <div class="row">
+        <div><div class="name">Beta Features</div><div class="desc">Try features before general release</div></div>
+        <input type="checkbox" data-field="beta_features" {{ 'checked' if saved.beta_features else '' }}>
+      </div>
+      <div class="row">
+        <div><div class="name">Usage Analytics</div><div class="desc">Share anonymous usage data</div></div>
+        <input type="checkbox" data-field="usage_analytics" {{ 'checked' if saved.usage_analytics else '' }}>
+      </div>
+    </section>
+  </div>
+  <div class="foot"><button class="primary" id="save">Save changes</button></div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  document.querySelectorAll('#nav button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#nav button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      document.querySelectorAll('section[data-panel]').forEach(p =>
+        p.classList.toggle('hidden', p.dataset.panel !== btn.dataset.section));
+    });
+  });
+
+  document.getElementById('save').addEventListener('click', async () => {
+    const draft = {};
+    document.querySelectorAll('[data-field]').forEach(el => {
+      draft[el.dataset.field] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+    const { status } = await act({ op: 'save', draft });
+    if (status === 200) toast('Settings saved');
+  });
+</script>
+{% endblock %}
