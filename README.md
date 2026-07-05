@@ -116,7 +116,11 @@ returns named subgoals — then register it. The contract tests in
 
 - [x] Playwright harness: screenshot loop, agent adapter interface, trajectory recording
 - [x] Claude computer-use adapter (`computer_20251124`)
-- [ ] Open-model adapters: UI-TARS-1.5-7B (local), Qwen2.5-VL
+- [x] UI-TARS-1.5-7B evaluated against the arena — see
+      [uitars-webtask-eval](https://github.com/xiningli/uitars-webtask-eval)
+      (1/3 pass at seed 0, with a diagnosed state-tracking failure and an
+      environment finding about native `<select>` under headless rendering)
+- [ ] Qwen2.5-VL adapter; port the UI-TARS adapter into `harness/agents/`
 - [ ] pass@1 / pass^k reporting with per-subgoal breakdowns across repeated seeds
 - [ ] Failure taxonomy: grounding misclicks vs. perception errors vs. planning loops vs. premature termination
 - [ ] More tasks: drag-to-reorder, infinite-scroll search, modal interruptions
