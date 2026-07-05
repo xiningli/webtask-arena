@@ -1,6 +1,22 @@
+---
+title: WebTask Arena
+emoji: 🕹️
+colorFrom: blue
+colorTo: gray
+sdk: docker
+app_port: 8000
+pinned: false
+license: mit
+short_description: Deterministic, server-graded web tasks for GUI agents
+---
+
 # WebTask Arena
 
 A controlled environment for studying **where GUI agents fail**.
+
+> **Live demo:** this repo also runs as a Hugging Face Space —
+> [xiningli/webtask-arena](https://huggingface.co/spaces/xiningli/webtask-arena).
+> Open a task page, then drive an episode with the reset/verify API shown below.
 
 WebTask Arena is a set of deterministic, resettable, self-contained web tasks
 with server-side reward functions, built for evaluating computer-use agents
