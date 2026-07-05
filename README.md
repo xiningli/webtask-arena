@@ -69,6 +69,36 @@ never expose them to the agent under evaluation.
 One episode per task per container; parallelize batch evals by running
 multiple containers.
 
+## Harness
+
+The harness drives real browser episodes with Playwright: screenshot in,
+[computer-use-style action](https://platform.claude.com/docs/en/agents-and-tools/tool-use/computer-use-tool)
+out (`left_click` at pixel coordinates, `type`, `key`, `scroll`, ...), executed
+against a fixed 1280×800 viewport. Every episode records `step_NNN.png`,
+`actions.jsonl`, and `result.json` with per-subgoal outcomes.
+
+```bash
+pip install -r requirements-dev.txt && playwright install chromium
+uvicorn server.app:app &
+
+# self-test: the scripted oracle agent exercises the full pipeline
+python -m harness.run --agent scripted --task all --seeds 0-4
+
+# same tasks under adversarial rendering
+python -m harness.run --agent scripted --task all --seeds 0-4 \
+    --latency-ms 800 --layout-shift
+
+# Claude computer-use adapter (needs ANTHROPIC_API_KEY + pip install anthropic)
+python -m harness.run --agent claude --task all --seeds 0-4
+```
+
+The **scripted agent** is a DOM-oracle reference implementation: it parses the
+natural-language instruction and emits ordinary click/type/key actions, but
+locates targets via the DOM. It exists to validate the pipeline (env →
+screenshots → executor → server state → verify), not as a baseline — model
+adapters never get DOM access. It passes 3/3 tasks across seeds under both
+clean and adversarial rendering.
+
 ## Development
 
 ```bash
@@ -84,9 +114,10 @@ returns named subgoals — then register it. The contract tests in
 
 ## Roadmap
 
-- [ ] Playwright harness: screenshot loop, agent adapter interface, trajectory recording
-- [ ] Agent adapters: UI-TARS-1.5-7B (local), Qwen2.5-VL, Claude computer-use API
-- [ ] pass@1 / pass^k reporting with per-subgoal breakdowns across seeds
+- [x] Playwright harness: screenshot loop, agent adapter interface, trajectory recording
+- [x] Claude computer-use adapter (`computer_20251124`)
+- [ ] Open-model adapters: UI-TARS-1.5-7B (local), Qwen2.5-VL
+- [ ] pass@1 / pass^k reporting with per-subgoal breakdowns across repeated seeds
 - [ ] Failure taxonomy: grounding misclicks vs. perception errors vs. planning loops vs. premature termination
 - [ ] More tasks: drag-to-reorder, infinite-scroll search, modal interruptions
 
