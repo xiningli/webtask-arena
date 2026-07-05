@@ -1,21 +1,101 @@
 <!doctype html>
 <html lang="en">
-<head><meta charset="utf-8"><title>WebTask Arena</title>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WebTask Arena</title>
 <style>
-  body { font-family: system-ui, sans-serif; max-width: 640px; margin: 48px auto; color: #1c1e21; }
-  li { margin: 8px 0; }
-  code { background: #eef0f3; padding: 2px 5px; border-radius: 4px; font-size: 13px; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #12141a;
+         color: #ebeef5; line-height: 1.55; }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 48px 24px 64px; }
+  h1 { font-size: 40px; letter-spacing: -0.5px; }
+  .sub { color: #969eaa; font-size: 18px; margin-top: 6px; }
+  .links { margin-top: 14px; font-size: 14px; }
+  .links a { color: #7ea2ff; text-decoration: none; margin-right: 18px; }
+  .links a:hover { text-decoration: underline; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+           gap: 16px; margin-top: 36px; }
+  .card { background: #1a1d26; border: 1px solid #2a2f3c; border-radius: 12px;
+          padding: 22px; display: flex; flex-direction: column; gap: 10px; }
+  .card h2 { font-size: 19px; }
+  .card p { color: #969eaa; font-size: 14px; flex: 1; }
+  .btn { display: inline-block; background: #2456d6; color: #fff; text-decoration: none;
+         padding: 9px 16px; border-radius: 8px; font-size: 14px; font-weight: 600;
+         text-align: center; }
+  .btn.ghost { background: #232838; color: #cdd3de; }
+  .chip { display: inline-block; font-size: 12px; font-weight: 700; padding: 2px 9px;
+          border-radius: 99px; margin: 0 6px 6px 0; }
+  .pass { background: rgba(52,199,89,.15); color: #4ade80; }
+  .fail { background: rgba(255,90,80,.15); color: #ff7b72; }
+  .how { margin-top: 44px; background: #1a1d26; border: 1px solid #2a2f3c;
+         border-radius: 12px; padding: 22px; }
+  .how h2 { font-size: 19px; margin-bottom: 8px; }
+  pre { background: #0e1015; border-radius: 8px; padding: 14px; overflow-x: auto;
+        font-size: 12.5px; color: #b9c2d0; margin-top: 10px; }
+  .tasklist { margin-top: 10px; font-size: 14px; color: #969eaa; }
+  .tasklist a { color: #7ea2ff; text-decoration: none; }
 </style>
 </head>
 <body>
-<h1>WebTask Arena</h1>
-<p>Deterministic, resettable web environments for evaluating GUI agents.</p>
-<ul>
-  {% for task_id, task_title in tasks %}
-  <li><a href="/task/{{ task_id }}">{{ task_title }}</a> — <code>{{ task_id }}</code></li>
-  {% endfor %}
-</ul>
-<p>Reset an episode: <code>POST /api/&lt;task_id&gt;/reset {"seed": 42}</code> ·
-Check the outcome: <code>GET /api/&lt;task_id&gt;/verify</code></p>
+<div class="wrap">
+  <h1>WebTask Arena</h1>
+  <div class="sub">Deterministic, server-graded web tasks for GUI agents —
+  same seed, same episode, every time. Success is decomposed into named
+  subgoals, so a failure tells you <em>which</em> capability broke.</div>
+  <div class="links">
+    <a href="https://github.com/xiningli/webtask-arena">GitHub: environment + harness</a>
+    <a href="https://github.com/xiningli/uitars-webtask-eval">GitHub: UI-TARS evaluation</a>
+  </div>
+
+  <div class="cards">
+    <div class="card">
+      <h2>&#9654; Watch an agent run</h2>
+      <p>Step through recorded UI-TARS-1.5-7B episodes — every screenshot,
+      every click, and the model's own thoughts, next to the server's verdict.
+      The failures are the interesting part.</p>
+      <div>
+        {% for r in replays %}
+        <span class="chip {{ 'pass' if r.success else 'fail' }}">{{ 'PASS' if r.success else 'FAIL' }} · {{ r.task }}</span>
+        {% endfor %}
+      </div>
+      <a class="btn" href="/replays">Open the replay player</a>
+    </div>
+
+    <div class="card">
+      <h2>&#127918; Beat the agent</h2>
+      <p>Take the exact seeded instruction the model got, do the task yourself,
+      and let the same oracle grade you — subgoal by subgoal — against the
+      agent's result.</p>
+      <a class="btn" href="/play">Play a graded episode</a>
+    </div>
+
+    <div class="card">
+      <h2>&#129302; Live agent runs</h2>
+      <p>Watching a local UI-TARS drive these tasks live (model served from a
+      home GPU over a tailnet) is on the roadmap. Until then, the replay
+      player shows real recorded runs.</p>
+      <a class="btn ghost" href="https://github.com/xiningli/uitars-webtask-eval">Run it on your own GPU</a>
+    </div>
+  </div>
+
+  <div class="how">
+    <h2>How grading works</h2>
+    <p style="color:#969eaa;font-size:14px">Agents see only the task pages below —
+    rewards are computed server-side from ground-truth state, never scraped from
+    the DOM. Drive an episode from any HTTP client:</p>
+    <pre>curl -X POST {host}/api/email-triage/reset -H 'Content-Type: application/json' \
+  -d '{"seed": 42, "latency_ms": 800, "layout_shift": true}'
+# -> {"instruction": "In the inbox, archive every email from ..."}
+#    ...point your agent at /task/email-triage ...
+curl {host}/api/email-triage/verify
+# -> {"success": false, "subgoals": {"archived_all_from_target": true, ...}}</pre>
+    <div class="tasklist">Raw task pages (what the agent sees):
+      {% for task_id, task_title in tasks %}
+      <a href="/task/{{ task_id }}">{{ task_id }}</a>{{ " · " if not loop.last }}
+      {% endfor %}
+    </div>
+  </div>
+</div>
 </body>
 </html>

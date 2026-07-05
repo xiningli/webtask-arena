@@ -15,8 +15,11 @@ short_description: Deterministic, server-graded web tasks for GUI agents
 A controlled environment for studying **where GUI agents fail**.
 
 > **Live demo:** this repo also runs as a Hugging Face Space —
-> [xiningli/webtask-arena](https://huggingface.co/spaces/xiningli/webtask-arena).
-> Open a task page, then drive an episode with the reset/verify API shown below.
+> [xiningli/webtask-arena](https://huggingface.co/spaces/xiningli/webtask-arena) —
+> with a **replay player** (step through recorded UI-TARS episodes: every
+> screenshot, action, and model thought next to the server's verdict) and a
+> **"beat the agent" mode** (play the same seeded episode yourself and get
+> graded by the same oracle, subgoal by subgoal).
 
 WebTask Arena is a set of deterministic, resettable, self-contained web tasks
 with server-side reward functions, built for evaluating computer-use agents

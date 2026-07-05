@@ -68,6 +68,29 @@ def test_task_page_renders():
         assert "app" in r.text
 
 
+def test_sessions_are_isolated():
+    # two visitors on the same task must not share episode state
+    client.post("/api/email-triage/reset?sid=alice", json={"seed": 1})
+    client.post("/api/email-triage/reset?sid=bob", json={"seed": 1})
+    alice_state = client.get("/api/email-triage/state?sid=alice").json()["state"]
+    target = next(e for e in alice_state["emails"]
+                  if e["sender"] == alice_state["target_sender"])
+    client.post("/api/email-triage/action?sid=alice",
+                json={"op": "archive", "id": target["id"]})
+    bob_state = client.get("/api/email-triage/state?sid=bob").json()["state"]
+    assert not any(e["archived"] for e in bob_state["emails"])
+    # and the default (harness) session is untouched by either
+    reset("email-triage", seed=1)
+    assert verify("email-triage")["success"] is False
+
+
+def test_landing_and_demo_pages():
+    assert "WebTask Arena" in client.get("/").text
+    assert client.get("/play").status_code == 200
+    # /replays is 200 when assets are bundled, 404 otherwise — both acceptable
+    assert client.get("/replays").status_code in (200, 404)
+
+
 # --------------------------------------------------------------- email triage
 
 def solve_email(task_id="email-triage"):

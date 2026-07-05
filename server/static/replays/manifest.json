@@ -1,0 +1,44 @@
+[
+ {
+  "task": "email-triage",
+  "agent": "UI-TARS-1.5-7B (4-bit)",
+  "seed": 0,
+  "instruction": "In the inbox, archive every email from Ava Petrov and star the email with the subject \u201cHoliday schedule\u201d. Do not archive or star anything else.",
+  "success": false,
+  "subgoals": {
+   "archived_all_from_target": true,
+   "no_extra_archived": false,
+   "starred_target_only": false
+  },
+  "diagnosis": "State-tracking failure: archives worked, but the model never perceived rows disappearing \u2014 it re-clicked fixed coordinates while the list reflowed underneath, archiving 7 extra emails while blaming 'an unresponsive system'.",
+  "n_steps": 16
+ },
+ {
+  "task": "settings-panel",
+  "agent": "UI-TARS-1.5-7B (4-bit)",
+  "seed": 0,
+  "instruction": "In Settings, enable Dark Mode and set the timezone to America/Vancouver, then save your changes. Leave every other setting as it is.",
+  "success": false,
+  "subgoals": {
+   "dark_mode_saved": true,
+   "timezone_saved": false,
+   "no_unrelated_changes": true
+  },
+  "diagnosis": "Environment finding: headless chromium renders native <select> dropdowns outside the page \u2014 the timezone options are invisible to any screenshot agent. Dark Mode itself was correctly enabled and saved.",
+  "n_steps": 16
+ },
+ {
+  "task": "checkout-form",
+  "agent": "UI-TARS-1.5-7B (4-bit)",
+  "seed": 0,
+  "instruction": "Complete the checkout for Liam Rossi (email: liam.rossi@arcmail.org). Ship to 8816 Harbor Rd, Fairview, ZIP 33494. Submit the order at the review step.",
+  "success": true,
+  "subgoals": {
+   "contact_correct": true,
+   "shipping_correct": true,
+   "submitted": true
+  },
+  "diagnosis": "Clean run: precise field clicks, correct typing, three wizard steps, submit.",
+  "n_steps": 15
+ }
+]

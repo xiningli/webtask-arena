@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replays — WebTask Arena</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; background: #12141a;
+         color: #ebeef5; }
+  .wrap { max-width: 1060px; margin: 0 auto; padding: 28px 24px 56px; }
+  a.back { color: #7ea2ff; text-decoration: none; font-size: 14px; }
+  h1 { font-size: 26px; margin-top: 10px; }
+  .tabs { margin: 18px 0 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .tabs button { font: inherit; font-size: 14px; padding: 7px 14px; border-radius: 8px;
+                 border: 1px solid #2a2f3c; background: #1a1d26; color: #cdd3de;
+                 cursor: pointer; }
+  .tabs button.active { background: #2456d6; border-color: #2456d6; color: #fff; }
+  .instruction { background: #1a1d26; border: 1px solid #2a2f3c; border-radius: 10px;
+                 padding: 12px 16px; font-size: 14.5px; color: #cdd3de; }
+  .player { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 16px;
+            margin-top: 14px; }
+  @media (max-width: 860px) { .player { grid-template-columns: 1fr; } }
+  .screen img { width: 100%; border-radius: 10px; border: 1px solid #2a2f3c;
+                background: #fff; }
+  .controls { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
+  .controls button { font: inherit; padding: 6px 14px; border-radius: 8px; border: none;
+                     background: #232838; color: #ebeef5; cursor: pointer; }
+  .controls input[type=range] { flex: 1; }
+  .stepno { font-size: 13px; color: #969eaa; white-space: nowrap; }
+  .side { display: flex; flex-direction: column; gap: 12px; }
+  .panel { background: #1a1d26; border: 1px solid #2a2f3c; border-radius: 10px;
+           padding: 14px 16px; }
+  .panel h3 { font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+              color: #969eaa; margin-bottom: 6px; }
+  .action { font-family: ui-monospace, monospace; font-size: 13px; color: #7ea2ff;
+            word-break: break-all; }
+  .thought { font-size: 13.5px; color: #cdd3de; font-style: italic; }
+  .verdict { font-size: 22px; font-weight: 800; }
+  .verdict.pass { color: #4ade80; } .verdict.fail { color: #ff7b72; }
+  .subgoal { font-size: 13px; margin-top: 4px; }
+  .subgoal .ok { color: #4ade80; } .subgoal .bad { color: #ff7b72; }
+  .diagnosis { font-size: 13px; color: #969eaa; margin-top: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/">&larr; WebTask Arena</a>
+  <h1>Agent replays</h1>
+  <div class="tabs" id="tabs"></div>
+  <div class="instruction" id="instruction"></div>
+  <div class="player">
+    <div class="screen">
+      <img id="frame" alt="episode screenshot">
+      <div class="controls">
+        <button id="prev">&larr;</button>
+        <input type="range" id="slider" min="0" value="0">
+        <button id="next">&rarr;</button>
+        <span class="stepno" id="stepno"></span>
+      </div>
+    </div>
+    <div class="side">
+      <div class="panel"><h3>Action</h3><div class="action" id="action"></div></div>
+      <div class="panel"><h3>Model's thought</h3><div class="thought" id="thought"></div></div>
+      <div class="panel" id="verdictPanel" style="display:none">
+        <h3>Server verdict</h3>
+        <div class="verdict" id="verdict"></div>
+        <div id="subgoals"></div>
+        <div class="diagnosis" id="diagnosis"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+  const MANIFEST = {{ manifest_json | safe }};
+  let replay = null, task = null, i = 0;
+
+  const $ = id => document.getElementById(id);
+
+  function renderTabs() {
+    MANIFEST.forEach((e, idx) => {
+      const b = document.createElement('button');
+      b.textContent = `${e.success ? 'PASS' : 'FAIL'} · ${e.task}`;
+      b.addEventListener('click', () => load(e.task, b));
+      if (idx === 0) b.classList.add('active');
+      $('tabs').appendChild(b);
+    });
+  }
+
+  async function load(taskId, btn) {
+    document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    const r = await fetch(`/static/replays/${taskId}/replay.json`);
+    replay = await r.json();
+    task = taskId;
+    i = 0;
+    $('slider').max = replay.steps.length - 1;
+    $('instruction').textContent = `Instruction (seed ${replay.seed}): ${replay.instruction}`;
+    show();
+  }
+
+  function show() {
+    const s = replay.steps[i];
+    $('frame').src = `/static/replays/${task}/${s.img}`;
+    $('slider').value = i;
+    $('stepno').textContent = `${i + 1}/${replay.steps.length}`;
+    $('action').textContent = s.action;
+    $('thought').textContent = s.thought || '—';
+    const last = i === replay.steps.length - 1;
+    $('verdictPanel').style.display = last ? '' : 'none';
+    if (last) {
+      $('verdict').textContent = replay.success ? 'PASS' : 'FAIL';
+      $('verdict').className = 'verdict ' + (replay.success ? 'pass' : 'fail');
+      $('subgoals').innerHTML = Object.entries(replay.subgoals)
+        .map(([k, v]) => `<div class="subgoal"><span class="${v ? 'ok' : 'bad'}">${v ? '✓' : '✗'}</span> ${k}</div>`)
+        .join('');
+      $('diagnosis').textContent = replay.diagnosis;
+    }
+  }
+
+  $('prev').addEventListener('click', () => { if (i > 0) { i--; show(); } });
+  $('next').addEventListener('click', () => { if (i < replay.steps.length - 1) { i++; show(); } });
+  $('slider').addEventListener('input', e => { i = Number(e.target.value); show(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft') $('prev').click();
+    if (e.key === 'ArrowRight') $('next').click();
+  });
+
+  renderTabs();
+  load(MANIFEST[0].task);
+</script>
+</body>
+</html>

@@ -58,8 +58,11 @@
     }, OPTS.latency_ms || 0);
   });
 
+  const SID = new URLSearchParams(location.search).get('sid');
+
   async function act(payload) {
-    const r = await fetch(`/api/${OPTS.task_id}/action`, {
+    const url = `/api/${OPTS.task_id}/action` + (SID ? `?sid=${encodeURIComponent(SID)}` : '');
+    const r = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
