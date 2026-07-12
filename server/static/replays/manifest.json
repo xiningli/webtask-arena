@@ -42,21 +42,6 @@
   "n_steps": 15
  },
  {
-  "task": "causal-gate",
-  "agent": "UI-TARS-1.5-7B (4-bit)",
-  "seed": 0,
-  "instruction": "You heard about us from a friend. Set \"How did you hear about us?\" to \"Friend referral\", then apply the referral code HZ7KUA in the field that appears. Leave the gift card field blank. Save your changes.",
-  "success": false,
-  "subgoals": {
-   "source_selected_correctly": true,
-   "referral_code_correct": false,
-   "gift_card_untouched": true,
-   "saved": true
-  },
-  "diagnosis": "Causal reasoning: correct. Execution: incomplete. The model opened the dropdown, selected \u201cFriend referral,\u201d watched the referral field appear, and typed the right code \u2014 it got the causal precondition exactly right. It then clicked \u201cSave changes\u201d directly, skipping the separate \u201cApply\u201d click the referral field requires, so the code was never committed.",
-  "n_steps": 7
- },
- {
   "task": "flash-offer",
   "agent": "UI-TARS-1.5-7B (4-bit)",
   "seed": 0,
@@ -68,5 +53,20 @@
   },
   "diagnosis": "Same 'distrusts its own successful action' pattern as email-triage, reproduced in an unrelated task. The model correctly named the live code at each glance as it rotated, but its first click genuinely focused the input \u2014 a subtle focus-ring change it misread as 'the page didn't respond,' so it re-clicked the same point instead of typing, until the harness's repeat-action guard aborted the episode.",
   "n_steps": 5
+ },
+ {
+  "task": "causal-gate",
+  "agent": "UI-TARS-1.5-7B (4-bit)",
+  "seed": 0,
+  "instruction": "You heard about us from a friend. Set \"How did you hear about us?\" to \"Friend referral\", then enter the referral code HZ7KUA in the field that appears. Leave the gift card field blank. Save your changes.",
+  "success": false,
+  "subgoals": {
+   "source_selected_correctly": true,
+   "referral_code_correct": false,
+   "gift_card_untouched": true,
+   "saved": false
+  },
+  "diagnosis": "Causal reasoning: correct. Grounding: a near-miss. The model opened the dropdown, selected \u201cFriend referral,\u201d watched the referral field appear, and typed the right code \u2014 it got the causal precondition exactly right. Its final click aimed at \u201cSave changes\u201d landed about 12px above the button, on the divider line just above it, so the click never registered and nothing was saved.",
+  "n_steps": 7
  }
 ]

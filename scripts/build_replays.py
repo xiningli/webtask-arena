@@ -39,12 +39,13 @@ DIAGNOSIS = {
                       "<select> dropdowns outside the page — the timezone options "
                       "are invisible to any screenshot agent. Dark Mode itself was "
                       "correctly enabled and saved.",
-    "causal-gate": "Causal reasoning: correct. Execution: incomplete. The model "
+    "causal-gate": "Causal reasoning: correct. Grounding: a near-miss. The model "
                    "opened the dropdown, selected “Friend referral,” watched the "
                    "referral field appear, and typed the right code — it got the "
-                   "causal precondition exactly right. It then clicked “Save "
-                   "changes” directly, skipping the separate “Apply” click the "
-                   "referral field requires, so the code was never committed.",
+                   "causal precondition exactly right. Its final click aimed at "
+                   "“Save changes” landed about 12px above the button, on the "
+                   "divider line just above it, so the click never registered "
+                   "and nothing was saved.",
     "flash-offer": "Same 'distrusts its own successful action' pattern as "
                    "email-triage, reproduced in an unrelated task. The model "
                    "correctly named the live code at each glance as it rotated, "

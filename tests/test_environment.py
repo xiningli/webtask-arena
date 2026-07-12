@@ -206,29 +206,31 @@ def test_causal_gate_success():
     reset("causal-gate", seed=3)
     code = oracle("causal-gate")["expected_code"]
     act("causal-gate", {"op": "set_source", "value": "Friend referral"})
-    act("causal-gate", {"op": "apply_referral_code", "code": code})
-    act("causal-gate", {"op": "save"})
+    act("causal-gate", {"op": "save", "draft": {"referral_code": code}})
     assert verify("causal-gate")["success"] is True
 
 
-def test_causal_gate_field_unavailable_before_source_selected():
-    # The referral field is causally gated — applying a code before selecting
-    # "Friend referral" must be rejected outright, not silently no-op.
+def test_causal_gate_code_without_source_fails():
+    # Typing the right code into the right-shaped field isn't enough — the
+    # source selection is the causal precondition, checked independently.
     reset("causal-gate", seed=3)
     code = oracle("causal-gate")["expected_code"]
-    r = act("causal-gate", {"op": "apply_referral_code", "code": code})
-    assert r.status_code == 400
+    act("causal-gate", {"op": "save", "draft": {"referral_code": code}})
+    result = verify("causal-gate")
+    assert result["success"] is False
+    assert result["subgoals"]["referral_code_correct"] is False
 
 
-def test_causal_gate_resets_on_source_change():
+def test_causal_gate_only_final_save_counts():
+    # Like settings-panel: draft state doesn't matter, only what's true at
+    # the moment of the final save (flipping source back and forth is fine).
     reset("causal-gate", seed=3)
     code = oracle("causal-gate")["expected_code"]
     act("causal-gate", {"op": "set_source", "value": "Friend referral"})
-    act("causal-gate", {"op": "apply_referral_code", "code": code})
     act("causal-gate", {"op": "set_source", "value": "Search engine"})
-    state = oracle("causal-gate")
-    assert state["code_value"] is None
-    assert state["code_applied_source"] is None
+    act("causal-gate", {"op": "set_source", "value": "Friend referral"})
+    act("causal-gate", {"op": "save", "draft": {"referral_code": code}})
+    assert verify("causal-gate")["success"] is True
 
 
 def test_causal_gate_decoy_field_fails():
@@ -236,8 +238,7 @@ def test_causal_gate_decoy_field_fails():
     # field near a discount theme" instead of the actual causal precondition.
     reset("causal-gate", seed=3)
     code = oracle("causal-gate")["expected_code"]
-    act("causal-gate", {"op": "apply_gift_card", "code": code})
-    act("causal-gate", {"op": "save"})
+    act("causal-gate", {"op": "save", "draft": {"gift_card": code}})
     result = verify("causal-gate")
     assert result["success"] is False
     assert result["subgoals"]["referral_code_correct"] is False

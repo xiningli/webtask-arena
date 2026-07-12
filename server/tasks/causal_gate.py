@@ -7,7 +7,14 @@ thought that matches its action "only by coincidence rather than through
 logical reasoning." A superficial pattern-matcher sees "discount context +
 code-shaped field" and types the code into whichever field is visible first
 (the gift card field) instead of recognizing the referral field's existence
-is conditional on the dropdown selection."""
+is conditional on the dropdown selection.
+
+Like `settings-panel`, only the state as of the "Save changes" click counts
+— fields are read live from the DOM at save time, there is no separate
+per-field commit step (an earlier version required one via a per-field
+"Apply" button with no visual cue, which meant a typed-but-unsaved value
+looked identical to a saved one in a screenshot; that tested "did you guess
+an undocumented UI convention," not causal reasoning, so it was removed)."""
 
 from __future__ import annotations
 
@@ -31,16 +38,15 @@ class CausalGate:
         return {
             "expected_code": code,
             "source": SOURCES[0],
-            "code_value": None,
-            "code_applied_source": None,
-            "gift_card_value": None,
+            "code_value": "",
+            "gift_card_value": "",
             "saved": False,
         }
 
     def instruction(self, state: dict[str, Any]) -> str:
         return (
             'You heard about us from a friend. Set "How did you hear about us?" to '
-            f'"{UNLOCKING_SOURCE}", then apply the referral code {state["expected_code"]} '
+            f'"{UNLOCKING_SOURCE}", then enter the referral code {state["expected_code"]} '
             "in the field that appears. Leave the gift card field blank. Save your changes."
         )
 
@@ -54,20 +60,11 @@ class CausalGate:
             if value not in SOURCES:
                 return {"ok": False, "error": "unknown source"}
             state["source"] = value
-            if value != UNLOCKING_SOURCE:
-                state["code_value"] = None
-                state["code_applied_source"] = None
-            return {"ok": True}
-        if op == "apply_referral_code":
-            if state["source"] != UNLOCKING_SOURCE:
-                return {"ok": False, "error": "referral code field is not available"}
-            state["code_value"] = str(payload.get("code", "")).strip()
-            state["code_applied_source"] = state["source"]
-            return {"ok": True}
-        if op == "apply_gift_card":
-            state["gift_card_value"] = str(payload.get("code", "")).strip()
             return {"ok": True}
         if op == "save":
+            draft = payload.get("draft", {})
+            state["code_value"] = str(draft.get("referral_code", "")).strip()
+            state["gift_card_value"] = str(draft.get("gift_card", "")).strip()
             state["saved"] = True
             return {"ok": True}
         return {"ok": False, "error": f"unknown op '{op}'"}
@@ -76,7 +73,7 @@ class CausalGate:
         return {
             "source_selected_correctly": state["source"] == UNLOCKING_SOURCE,
             "referral_code_correct": (
-                state["code_applied_source"] == UNLOCKING_SOURCE
+                state["source"] == UNLOCKING_SOURCE
                 and state["code_value"] == state["expected_code"]
             ),
             "gift_card_untouched": not state["gift_card_value"],
