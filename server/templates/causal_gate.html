@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block style %}
+  .body { padding: 6px 24px; }
+  .row { display: flex; justify-content: space-between; align-items: center;
+         padding: 12px 0; border-bottom: 1px solid #f0f2f5; font-size: 14px; gap: 16px; }
+  .row .name { font-weight: 600; }
+  .row .desc { color: #7a808a; font-size: 12px; margin-top: 2px; }
+  .dropdown { position: relative; width: 220px; }
+  .dropdown-toggle { width: 100%; text-align: left; background: #fff; }
+  .dropdown-menu { position: absolute; top: 100%; left: 0; right: 0; background: #fff;
+                   border: 1px solid #c4c9d1; border-radius: 6px; margin-top: 4px;
+                   box-shadow: 0 4px 10px rgba(0,0,0,.08); z-index: 10; overflow: hidden; }
+  .dropdown-item { padding: 9px 12px; cursor: pointer; font-size: 14px; }
+  .dropdown-item:hover { background: #eef2fd; }
+  .code-row { padding: 12px 0; border-bottom: 1px solid #f0f2f5; }
+  .code-row .name { font-weight: 600; margin-bottom: 8px; }
+  .code-row .inline { display: flex; gap: 8px; }
+  .code-row input[type=text] { width: 220px; }
+  .foot { padding: 14px 24px; border-top: 1px solid #e8eaee; text-align: right; }
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-head">Account Settings</div>
+  <div class="body">
+    <div class="row">
+      <div><div class="name">How did you hear about us?</div><div class="desc">Helps us understand referral sources</div></div>
+      <div class="dropdown" id="source-dropdown">
+        <button type="button" class="dropdown-toggle" id="source-toggle">{{ source }}</button>
+        <div class="dropdown-menu hidden" id="source-menu">
+          {% for s in sources %}
+          <div class="dropdown-item" data-value="{{ s }}">{{ s }}</div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+
+    <div class="code-row {{ 'hidden' if source != 'Friend referral' else '' }}" id="referral-row">
+      <div class="name">Referral code</div>
+      <div class="inline">
+        <input type="text" id="referral-code" placeholder="Enter referral code">
+        <button id="apply-referral">Apply</button>
+      </div>
+    </div>
+
+    <div class="code-row">
+      <div class="name">Gift card code (optional)</div>
+      <div class="inline">
+        <input type="text" id="gift-card-code" placeholder="Enter gift card code">
+        <button id="apply-gift-card">Apply</button>
+      </div>
+    </div>
+  </div>
+  <div class="foot"><button class="primary" id="save">Save changes</button></div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  const sourceToggle = document.getElementById('source-toggle');
+  const sourceMenu = document.getElementById('source-menu');
+  const referralRow = document.getElementById('referral-row');
+
+  sourceToggle.addEventListener('click', () => sourceMenu.classList.toggle('hidden'));
+
+  sourceMenu.querySelectorAll('.dropdown-item').forEach((item) => {
+    item.addEventListener('click', async () => {
+      const value = item.dataset.value;
+      sourceToggle.textContent = value;
+      sourceMenu.classList.add('hidden');
+      referralRow.classList.toggle('hidden', value !== 'Friend referral');
+      await act({ op: 'set_source', value });
+    });
+  });
+
+  document.getElementById('apply-referral').addEventListener('click', async () => {
+    const code = document.getElementById('referral-code').value;
+    const { status } = await act({ op: 'apply_referral_code', code });
+    toast(status === 200 ? 'Referral code applied' : 'Referral code field is not available');
+  });
+
+  document.getElementById('apply-gift-card').addEventListener('click', async () => {
+    const code = document.getElementById('gift-card-code').value;
+    await act({ op: 'apply_gift_card', code });
+    toast('Gift card code applied');
+  });
+
+  document.getElementById('save').addEventListener('click', async () => {
+    await act({ op: 'save' });
+    toast('Settings saved');
+  });
+</script>
+{% endblock %}

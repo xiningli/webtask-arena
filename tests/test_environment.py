@@ -33,7 +33,11 @@ def act(task_id, payload):
     return client.post(f"/api/{task_id}/action", json=payload)
 
 
-ALL_TASKS = ["email-triage", "settings-panel", "checkout-form"]
+# Fully seed-deterministic tasks: identical (task, seed) -> identical state,
+# and instructions vary across seeds. flash-offer is deliberately excluded —
+# its grading is tied to real elapsed time, so it gets its own tests below.
+ALL_TASKS = ["email-triage", "settings-panel", "checkout-form", "causal-gate"]
+EVERY_TASK = ALL_TASKS + ["flash-offer"]
 
 
 # ---------------------------------------------------------------- determinism
@@ -61,7 +65,7 @@ def test_fresh_episode_is_not_solved(task_id):
 
 
 def test_task_page_renders():
-    for task_id in ALL_TASKS:
+    for task_id in EVERY_TASK:
         reset(task_id, seed=1)
         r = client.get(f"/task/{task_id}")
         assert r.status_code == 200
@@ -194,3 +198,89 @@ def test_checkout_wrong_data_submits_but_fails_verify():
     result = verify("checkout-form")
     assert result["subgoals"]["submitted"] is True
     assert result["success"] is False
+
+
+# --------------------------------------------------------------- causal gate
+
+def test_causal_gate_success():
+    reset("causal-gate", seed=3)
+    code = oracle("causal-gate")["expected_code"]
+    act("causal-gate", {"op": "set_source", "value": "Friend referral"})
+    act("causal-gate", {"op": "apply_referral_code", "code": code})
+    act("causal-gate", {"op": "save"})
+    assert verify("causal-gate")["success"] is True
+
+
+def test_causal_gate_field_unavailable_before_source_selected():
+    # The referral field is causally gated — applying a code before selecting
+    # "Friend referral" must be rejected outright, not silently no-op.
+    reset("causal-gate", seed=3)
+    code = oracle("causal-gate")["expected_code"]
+    r = act("causal-gate", {"op": "apply_referral_code", "code": code})
+    assert r.status_code == 400
+
+
+def test_causal_gate_resets_on_source_change():
+    reset("causal-gate", seed=3)
+    code = oracle("causal-gate")["expected_code"]
+    act("causal-gate", {"op": "set_source", "value": "Friend referral"})
+    act("causal-gate", {"op": "apply_referral_code", "code": code})
+    act("causal-gate", {"op": "set_source", "value": "Search engine"})
+    state = oracle("causal-gate")
+    assert state["code_value"] is None
+    assert state["code_applied_source"] is None
+
+
+def test_causal_gate_decoy_field_fails():
+    # The failure mode this task exists to catch: pattern-matching "code-shaped
+    # field near a discount theme" instead of the actual causal precondition.
+    reset("causal-gate", seed=3)
+    code = oracle("causal-gate")["expected_code"]
+    act("causal-gate", {"op": "apply_gift_card", "code": code})
+    act("causal-gate", {"op": "save"})
+    result = verify("causal-gate")
+    assert result["success"] is False
+    assert result["subgoals"]["referral_code_correct"] is False
+    assert result["subgoals"]["gift_card_untouched"] is False
+
+
+# -------------------------------------------------------------- flash offer
+
+def test_flash_offer_fresh_not_solved():
+    reset("flash-offer", seed=2)
+    assert verify("flash-offer")["success"] is False
+
+
+def test_flash_offer_success_immediately_after_reset():
+    # Well under CYCLE_SECONDS after reset, slot 0 is still the current code.
+    reset("flash-offer", seed=1)
+    codes = oracle("flash-offer")["codes"]
+    r = act("flash-offer", {"op": "redeem", "code": codes[0]})
+    assert r.status_code == 200
+    assert verify("flash-offer")["success"] is True
+
+
+def test_flash_offer_stale_code_fails():
+    reset("flash-offer", seed=1)
+    codes = oracle("flash-offer")["codes"]
+    act("flash-offer", {"op": "redeem", "code": codes[1]})  # a different slot's code
+    result = verify("flash-offer")
+    assert result["success"] is False
+    assert result["subgoals"]["code_matched_live_value"] is False
+
+
+def test_flash_offer_codes_deterministic_per_seed():
+    # The code *set* is seed-pure even though which one is "current" is not.
+    reset("flash-offer", seed=1)
+    codes_a = oracle("flash-offer")["codes"]
+    reset("flash-offer", seed=1)
+    codes_b = oracle("flash-offer")["codes"]
+    assert codes_a == codes_b
+
+
+def test_flash_offer_seeds_pick_different_code_sets():
+    sets = set()
+    for s in range(20):
+        reset("flash-offer", seed=s)
+        sets.add(tuple(oracle("flash-offer")["codes"]))
+    assert len(sets) > 1

@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from typing import Any, Protocol
 
+from .tasks.causal_gate import CausalGate
 from .tasks.checkout_form import CheckoutForm
 from .tasks.email_triage import EmailTriage
+from .tasks.flash_offer import FlashOffer
 from .tasks.settings_panel import SettingsPanel
 
 
@@ -30,5 +32,5 @@ class Task(Protocol):
         """Named subgoals; episode succeeds iff all are true."""
 
 
-_ALL = [EmailTriage(), SettingsPanel(), CheckoutForm()]
+_ALL = [EmailTriage(), SettingsPanel(), CheckoutForm(), CausalGate(), FlashOffer()]
 TASKS: dict[str, Task] = {t.id: t for t in _ALL}

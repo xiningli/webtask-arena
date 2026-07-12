@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block style %}
+  .offer { background: linear-gradient(90deg, #fde68a, #fca5a5); border-radius: 8px;
+           padding: 18px 24px; text-align: center; margin: 20px 24px; }
+  .offer .code { font-size: 30px; font-weight: 800; letter-spacing: 4px; color: #7a3b0e; }
+  .offer .sub { font-size: 13px; color: #7a3b0e; margin-top: 6px; }
+  .redeem-row { display: flex; gap: 8px; justify-content: center; padding: 4px 24px 20px; }
+  .redeem-row input { width: 220px; text-transform: uppercase; }
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-head">Flash Sale</div>
+  <div class="offer">
+    <div class="code" id="current-code">—</div>
+    <div class="sub">Code rotates every {{ cycle_seconds }}s — next change in <span id="countdown">--</span>s</div>
+  </div>
+  <div class="redeem-row">
+    <input type="text" id="redeem-input" placeholder="Enter the current code">
+    <button class="primary" id="redeem">Redeem</button>
+  </div>
+</div>
+{% endblock %}
+
+{% block script %}
+<script>
+  const CODES = {{ codes_json | safe }};
+  const START_MS = {{ start_ts_ms }};
+  const CYCLE_MS = {{ cycle_seconds }} * 1000;
+
+  function tick() {
+    const elapsed = Date.now() - START_MS;
+    const idx = Math.floor(elapsed / CYCLE_MS) % CODES.length;
+    document.getElementById('current-code').textContent = CODES[idx];
+    const remaining = CYCLE_MS - (elapsed % CYCLE_MS);
+    document.getElementById('countdown').textContent = Math.ceil(remaining / 1000);
+  }
+  tick();
+  setInterval(tick, 1000);
+
+  document.getElementById('redeem').addEventListener('click', async () => {
+    const code = document.getElementById('redeem-input').value;
+    const { body } = await act({ op: 'redeem', code });
+    toast(body.correct ? 'Redeemed!' : 'Code did not match — try again');
+  });
+</script>
+{% endblock %}
