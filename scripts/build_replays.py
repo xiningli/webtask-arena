@@ -26,7 +26,7 @@ FRAME_DUP = 8      # frames saved per step by the runners
 JPEG_WIDTH = 880
 JPEG_QUALITY = 68
 
-_STEP = re.compile(r"^\[step (\d+)\] (\w+) point=([^ ]+) .*?content=(.*)$")
+_STEP = re.compile(r"^\[step (\d+)\] (\w+) point=(.*?) end=.*?content=(.*)$")
 
 DIAGNOSIS = {
     "checkout-form": "Clean run: precise field clicks, correct typing, "
@@ -39,6 +39,19 @@ DIAGNOSIS = {
                       "<select> dropdowns outside the page — the timezone options "
                       "are invisible to any screenshot agent. Dark Mode itself was "
                       "correctly enabled and saved.",
+    "causal-gate": "Causal reasoning: correct. Execution: incomplete. The model "
+                   "opened the dropdown, selected “Friend referral,” watched the "
+                   "referral field appear, and typed the right code — it got the "
+                   "causal precondition exactly right. It then clicked “Save "
+                   "changes” directly, skipping the separate “Apply” click the "
+                   "referral field requires, so the code was never committed.",
+    "flash-offer": "Same 'distrusts its own successful action' pattern as "
+                   "email-triage, reproduced in an unrelated task. The model "
+                   "correctly named the live code at each glance as it rotated, "
+                   "but its first click genuinely focused the input — a subtle "
+                   "focus-ring change it misread as 'the page didn't respond,' "
+                   "so it re-clicked the same point instead of typing, until the "
+                   "harness's repeat-action guard aborted the episode.",
 }
 
 
